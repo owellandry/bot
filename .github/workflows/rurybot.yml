@@ -8,12 +8,18 @@ on:
 jobs:
   notificar:
     runs-on: ubuntu-latest
+
     steps:
       - name: Enviar mensaje a Discord
         env:
           WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
+          MESSAGE="🚀 Nuevo commit en **${{ github.repository }}** por **${{ github.actor }}**."
+          MESSAGE+="\n📝 Mensaje del commit: _${{ github.event.head_commit.message }}_"
+          MESSAGE+="\n🔗 [Ver commit](https://github.com/${{ github.repository }}/commit/${{ github.sha }})"
+          PAYLOAD="{\"content\": \"$MESSAGE\"}"
+
           curl -H "Content-Type: application/json" \
                -X POST \
-               -d "{\"content\": \"🚀 Nuevo commit en *${{ github.repository }}* por *${{ github.actor }}*. Mensaje del commit: '${{ github.event.head_commit.message }}'\"}" \
-               $WEBHOOK_URL
+               -d "$PAYLOAD" \
+               "$WEBHOOK_URL"
