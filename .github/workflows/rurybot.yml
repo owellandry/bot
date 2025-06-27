@@ -1,4 +1,4 @@
-name: Notificación a Discord
+name: Commit del bot Rurylox
 
 on:
   push:
@@ -6,20 +6,27 @@ on:
       - main
 
 jobs:
-  notificar:
+  bot-action:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Enviar mensaje a Discord
-        env:
-          WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK }}
-        run: |
-          MESSAGE="🚀 Nuevo commit en **${{ github.repository }}** por **${{ github.actor }}**."
-          MESSAGE+="\n📝 Mensaje del commit: _${{ github.event.head_commit.message }}_"
-          MESSAGE+="\n🔗 [Ver commit](https://github.com/${{ github.repository }}/commit/${{ github.sha }})"
-          PAYLOAD="{\"content\": \"$MESSAGE\"}"
+      - name: Checkout
+        uses: actions/checkout@v3
 
-          curl -H "Content-Type: application/json" \
-               -X POST \
-               -d "$PAYLOAD" \
-               "$WEBHOOK_URL"
+      - name: Obtener token como App
+        id: app_token
+        uses: tibdex/github-app-token@v2
+        with:
+          app_id: ${{ secrets.GITHUB_APP_ID }}
+          private_key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Commit usando el bot
+        env:
+          TOKEN: ${{ steps.app_token.outputs.token }}
+        run: |
+          git config user.name "rurylox[bot]"
+          git config user.email "rurylox[bot]@users.noreply.github.com"
+          echo "Cambio del bot en $(date)" >> log.txt
+          git add log.txt
+          git commit -m "🤖 Actualización automática desde Rurylox"
+          git push https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git HEAD:main
