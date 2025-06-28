@@ -11,9 +11,10 @@ jobs:
 
     steps:
       - name: Checkout sin credenciales por defecto
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 0  # Necesario para obtener todo el historial
 
       - name: Obtener token como GitHub App
         id: app_token
@@ -23,16 +24,31 @@ jobs:
           installation_id: ${{ secrets.INSTALLATION_ID }}
           private_key: ${{ secrets.APP_PRIVATE_KEY }}
 
-      - name: Commit y push usando rurylox[bot]
+      - name: Configurar Git con el token del bot
         env:
           TOKEN: ${{ steps.app_token.outputs.token }}
         run: |
           git config user.name "rurylox[bot]"
           git config user.email "rurylox[bot]@users.noreply.github.com"
+          
+          # Configurar el remote con el token
+          git remote set-url origin https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git
 
+      - name: Hacer cambios y commit
+        run: |
           echo "Cambio automático del bot en $(date)" >> log.txt
           git add log.txt
+          
+          # Verificar si hay cambios para commitear
+          if git diff --staged --quiet; then
+            echo "No hay cambios para commitear"
+            exit 0
+          fi
+          
           git commit -m "🤖 Cambio automático desde Rurylox"
 
-          # Hacer push con el token del bot
-          git push https://x-access-token:${TOKEN}@github.com/${{ github.repository }}.git HEAD:main
+      - name: Push cambios
+        env:
+          TOKEN: ${{ steps.app_token.outputs.token }}
+        run: |
+          git push origin HEAD:main
